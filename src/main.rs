@@ -7,7 +7,8 @@ struct Matrix {
 impl Matrix {
     // #[no_mangle]
     // #[inline(never)]
-    #[target_feature(enable = "avx")]
+    #[target_feature(enable = "avx2")]
+    #[target_feature(enable = "fma")]
     unsafe fn s_product_sum(&mut self, a: &Matrix, b: &Matrix, j: usize) {
         let s_view = &b.data[j*b.rows..(j+1)*b.rows];
         // grab the resulting column
@@ -20,9 +21,9 @@ impl Matrix {
         for k in 0..a.cols {
             let scalar = s_view[k];
             let in_view = &a.data[k*a.rows..(k+1)*a.rows];
-            // the following can be accelerated using AVX
             for p in 0..self.rows {
-                out_view[p] += scalar * in_view[p];
+                // the following can be accelerated using FMA
+                out_view[p] = scalar.mul_add(in_view[p], out_view[p]);
             }
         }
     }
