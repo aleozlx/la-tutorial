@@ -42,7 +42,7 @@ impl Matrix {
             let in_view = & *(self.data.get_unchecked(j*self.cols..(j+1)*self.cols) as *const [f32]);
             let out_view = &mut *(self.data.get_unchecked_mut(i*self.cols..(i+1)*self.cols) as *mut [f32]);
             let s = -(out_view[j] / pivot);
-            for k in j+i..self.cols {
+            for k in j..self.cols {
                 out_view[k] = s.mul_add(in_view[k], out_view[k]);
             }
             out_view[j] = -s;
@@ -73,10 +73,9 @@ impl Matrix {
         for j in 0..aug.rows {
             unsafe{ aug.row_oplu(j); }
         }
-        println!("{:?}", aug.data);
         // back substitution
         for j in (0..aug.rows).rev() {
-            unsafe{ x[j] = (b[j] - Matrix::dot_unsafe(&aug.data[j*aug.cols+j+1..], &x[j+1..], aug.rows-1-j)) / aug.data[j*aug.cols+j]; }
+            unsafe{ x[j] = (aug.data[(j+1)*aug.cols-1] - Matrix::dot_unsafe(&aug.data[j*aug.cols+j+1..], &x[j+1..], aug.rows-1-j)) / aug.data[j*aug.cols+j]; }
         }
     }
 }
