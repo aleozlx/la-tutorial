@@ -38,20 +38,6 @@ impl IColumnVector for Vec<f32> {
     }
 }
 
-impl<'a> IColumnVector for &'a [f32] {
-    fn len(&self) -> usize {
-        self[..].len()
-    }
-
-    fn get_view(&self, _j: usize) -> &[f32] {
-        self
-    }
-
-    fn get_view_mut(&mut self, _j: usize) -> &mut [f32] {
-        unimplemented!();
-    }
-}
-
 impl<'a, 'b> std::ops::Mul<&'b Matrix> for &'a Matrix {
     type Output = Matrix;
 
@@ -118,10 +104,6 @@ impl Matrix {
         return s;
     }
 
-    fn dot_vecs(a: &IColumnVector, b: &IColumnVector) -> f32 {
-        unsafe { Matrix::dot_unsafe(a.get_view(0), b.get_view(0), std::cmp::min(a.len(), b.len())) }
-    }
-
     fn solve(&self, b: &Vec<f32>, x: &mut Vec<f32>){
         // create an augmented matrix in row major order
         let mut aug = Matrix { rows: self.rows, cols: self.cols+1, data: Vec::with_capacity(self.rows * (self.cols+1)) };
@@ -139,7 +121,9 @@ impl Matrix {
         }
         // back substitution
         for j in (0..aug.rows).rev() {
-            x[j] = (aug.data[(j+1)*aug.cols-1] - Matrix::dot_vecs(&&aug.data[j*aug.cols+j+1..], &&x[j+1..])) / aug.data[j*aug.cols+j];
+            unsafe{
+                x[j] = (aug.data[(j+1)*aug.cols-1] - Matrix::dot_unsafe(&aug.data[j*aug.cols+j+1..], &x[j+1..], aug.rows-1-j)) / aug.data[j*aug.cols+j];
+            }
         }
     }
 
